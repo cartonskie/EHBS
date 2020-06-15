@@ -1,0 +1,137 @@
+
+#include <Servo.h>
+#include <Arduino.h>
+#include <Wire.h>
+#include <SoftwareSerial.h>
+#include <LiquidCrystal.h>
+
+LiquidCrystal lcd(7, 8, 9, 10, 11, 12)
+Servo servo_9;
+Servo servo_PMD;
+Servo servo_Papier;
+int BUTTONYES = 2;
+int BUTTONNO = 3;
+int ledrest = 4; // leds voor bij juiste bak
+int ledPMD = 5;
+int ledPAP = 6;
+int counter = 0;
+
+void setup()
+{
+  Serial.begin(115200);
+  servo_9.attach(9);
+  servo_PMD.attach(10);
+  servo_Papier.attach(11);
+  servo_9.write(0);
+  servo_PMD.write(0);
+  servo_Papier.write(0);
+  pinMode(ledrest,OUTPUT);
+  pinMode(ledPMD,OUTPUT);
+  pinMode(ledPAP,OUTPUT);
+  lcd.begin(16, 2);
+  lcd.print("Starting up!");
+  
+}
+
+
+bool wait_button_pressed() {
+  while(true) {
+    if (digitalRead(BUTTONYES) == HIGH) {
+      return true;
+    }
+    if (digitalRead(BUTTONNO) == HIGH) {
+      return false;
+    }
+  }
+}
+
+void gooi_bak() {
+  lcd.clear();
+  lcd.begin(16, 2);
+  lcd.print("gooi maar in de");
+  lcd.setCursor(0, 1);
+  lcd.print("juiste bak!");
+}
+
+void start_up(){
+  while (counter < 3){
+    digitalWrite(ledrest,HIGH);
+    delay(200);
+    digitalWrite(ledrest,LOW);
+    delay(200);
+    digitalWrite(ledPMD,HIGH);
+    delay(200);
+    digitalWrite(ledPMD,LOW);
+    delay(200);
+    digitalWrite(ledPAP,HIGH);
+    delay(200);
+    digitalWrite(ledPAP,LOW);
+    delay(200);
+    counter++;
+
+    
+    // cyclus die lampjes 3x elk afzonderlijk laat aan en uit gaan
+
+  }
+}
+
+
+void loop()
+{
+  //startup to check  the lights
+
+
+  start_up();
+
+
+  // check for rest afval
+  lcd.clear();
+  lcd.print("Is je afval rest");
+  lcd.setCursor(0, 1);
+  lcd.print("afval?");
+
+  bool answer = wait_button_pressed();
+  if (answer == true) {
+    digitalWrite(ledrest,HIGH);
+    gooi_bak();
+    servo_9.write(90);
+    delay(30000);
+    servo_9.write(0);
+    digitalWrite(ledrest,LOW);
+  }
+  else if (answer == false) { // geen restafval
+    lcd.clear();
+    lcd.begin(16, 2);
+    lcd.print("Is het PMD?");
+    answer = wait_button_pressed();
+    if (answer == true){  // het is pmd afval
+      digitalWrite(ledPMD,HIGH);
+      gooi_bak();
+      servo_PMD.write(90);
+      delay(30000);
+      servo_PMD.write(0);
+      digitalWrite(ledPMD,LOW);
+    }
+    else if (answer == false) { // geen restafval noch pmd
+        lcd.clear();
+        lcd.begin(16, 2);
+        lcd.print("Is het Papier?");
+        answer = wait_button_pressed();
+        if (answer == true) {
+          digitalWrite(ledPAP,HIGH);
+          gooi_bak();
+          servo_Papier.write(90);
+          delay(30000);
+          servo_Papier.write(0);
+          digitalWrite(ledPAP,LOW);
+        }
+        else if (answer == false) {  // 3 keer op nee gedrukt --> probeer opnieuw
+          lcd.clear();
+          lcd.begin(16, 2);
+          lcd.print("Probeer opnieuw!");
+          delay(2000);
+        }
+      }
+  }
+}
+
